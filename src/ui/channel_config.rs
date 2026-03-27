@@ -89,8 +89,10 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
                     }
                     ui.strong(&ch.hw_info.name);
                     ui.label(format!(
-                        "(S/N: {}, Ch: {})",
-                        ch.hw_info.serial_number, ch.hw_info.hw_channel
+                        "[{}] (S/N: {}, Ch: {})",
+                        ch.hw_info.hw_type_name(),
+                        ch.hw_info.serial_number,
+                        ch.hw_info.hw_channel
                     ));
                 });
 

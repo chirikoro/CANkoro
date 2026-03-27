@@ -18,6 +18,26 @@ pub struct HwChannelInfo {
     pub is_on_bus: bool,
 }
 
+impl HwChannelInfo {
+    /// Returns true if this is a Virtual CAN channel
+    pub fn is_virtual(&self) -> bool {
+        self.hw_type == XL_HWTYPE_VIRTUAL
+    }
+
+    /// Human-readable hardware type name
+    pub fn hw_type_name(&self) -> &'static str {
+        match self.hw_type {
+            XL_HWTYPE_VIRTUAL => "Virtual",
+            XL_HWTYPE_CANCARDXL => "CANcardXL",
+            XL_HWTYPE_VN1610 => "VN1610",
+            XL_HWTYPE_VN1630 => "VN1630",
+            XL_HWTYPE_VN1640 => "VN1640",
+            XL_HWTYPE_VN1670 => "VN1670",
+            _ => "Unknown",
+        }
+    }
+}
+
 /// Vector driver manager
 pub struct VectorDriver {
     api: Arc<XlApi>,

@@ -28,8 +28,12 @@ pub const XL_ERR_CANNOT_OPEN_DRIVER: XLstatus = 201;
 pub const XL_BUS_TYPE_CAN: u32 = 0x00000001;
 
 // Interface types
+pub const XL_HWTYPE_VIRTUAL: u32 = 1;
+pub const XL_HWTYPE_CANCARDXL: u32 = 15;
+pub const XL_HWTYPE_VN1610: u32 = 50;
 pub const XL_HWTYPE_VN1630: u32 = 57;
 pub const XL_HWTYPE_VN1640: u32 = 59;
+pub const XL_HWTYPE_VN1670: u32 = 137;
 
 // CAN message flags
 pub const XL_CAN_MSG_FLAG_ERROR_FRAME: u32 = 0x01;
