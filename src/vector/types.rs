@@ -1,5 +1,6 @@
 /// Vector XL Driver Library type definitions
 /// Mirrors the C types from vxlapi.h
+/// IMPORTANT: vxlapi.h uses #pragma pack(1), so all structs must use #[repr(C, packed)]
 
 pub type XLstatus = i32;
 pub type XLportHandle = i64;
@@ -48,9 +49,8 @@ pub const XL_CAN_MSG_FLAG_TX_REQUEST: u32 = 0x80;
 // CAN FD flags
 pub const XL_CAN_TXMSG_FLAG_EDL: u32 = 0x0001; // Extended Data Length (FD)
 pub const XL_CAN_TXMSG_FLAG_BRS: u32 = 0x0002; // Bit Rate Switch
-pub const XL_CAN_TXMSG_FLAG_RTR: u32 = 0x0010; // Remote Transmission Request
-pub const XL_CAN_TXMSG_FLAG_HIGHPRIO: u32 = 0x0080;
 
+// CAN FD RX flags
 pub const XL_CAN_RXMSG_FLAG_EDL: u32 = 0x0001;
 pub const XL_CAN_RXMSG_FLAG_BRS: u32 = 0x0002;
 pub const XL_CAN_RXMSG_FLAG_ESI: u32 = 0x0004;
@@ -79,69 +79,13 @@ pub const XL_MAX_MSG_LEN: usize = 8;
 pub const XL_CAN_MAX_DATA_LEN: usize = 64;
 pub const XL_CONFIG_MAX_CHANNELS: usize = 64;
 
-/// Driver configuration for a single channel
-#[repr(C)]
-#[derive(Debug, Clone)]
-pub struct XLchannelConfig {
-    pub name: [u8; 32],
-    pub hw_type: u32,
-    pub hw_index: u32,
-    pub hw_channel: u32,
-    pub transceiverType: u32,
-    pub transceiverState: u32,
-    pub configError: u32,
-    pub channelIndex: u32,
-    pub channelMask: XLaccess,
-    pub channelCapabilities: u32,
-    pub channelBusCapabilities: u32,
-    pub isOnBus: u32,
-    pub connectedBusType: u32,
-    pub busParams: XLbusParams,
-    pub _doNotUse: u32,
-    pub driverVersion: u32,
-    pub interfaceVersion: u32,
-    pub raw_data: [u32; 10],
-    pub serialNumber: u32,
-    pub articleNumber: u32,
-    pub transceiverName: [u8; 32],
-    pub specialCabFlags: u32,
-    pub dominantTimeout: u32,
-    pub dominantRecessiveDelay: u8,
-    pub recessiveDominantDelay: u8,
-    pub connectionInfo: u8,
-    pub currentlyAvailableTimestamps: u8,
-    pub minimalSupplyVoltage: u16,
-    pub maximalSupplyVoltage: u16,
-    pub maximalBaudrate: u32,
-    pub fpgaCoreCapabilities: u8,
-    pub specialDeviceStatus: u8,
-    pub channelBusActiveCapabilities: u16,
-    pub breakOffset: u16,
-    pub delimiterOffset: u16,
-    pub reserved: [u32; 3],
-}
+// ============================================================
+// Structs matching vxlapi.h with #pragma pack(1)
+// All structs use #[repr(C, packed)] to match C packing
+// ============================================================
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub struct XLbusParams {
-    pub busType: u32,
-    pub data: XLbusParamsData,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union XLbusParamsData {
-    pub can: XLbusParamsCan,
-    pub raw: [u8; 32],
-}
-
-impl std::fmt::Debug for XLbusParamsData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "XLbusParamsData {{ ... }}")
-    }
-}
-
-#[repr(C)]
+/// CAN bus parameters (inside XLbusParams union)
+#[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct XLbusParamsCan {
     pub bitRate: u32,
@@ -154,9 +98,101 @@ pub struct XLbusParamsCan {
     pub canOpMode: u8,
 }
 
-/// Driver configuration
+/// Bus parameters union data (28 bytes to match C union)
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Copy, Clone)]
+pub union XLbusParamsData {
+    pub can: XLbusParamsCan,
+    pub raw: [u8; 28],
+}
+
+impl std::fmt::Debug for XLbusParamsData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "XLbusParamsData {{ ... }}")
+    }
+}
+
+/// Bus parameters (busType u32 + 28-byte union = 32 bytes total)
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct XLbusParams {
+    pub busType: u32,
+    pub data: XLbusParamsData,
+}
+
+/// Driver configuration for a single channel
+/// Matches s_xl_channel_config from vxlapi.h exactly (224 bytes, packed)
+///
+/// CRITICAL: Field types must match the C header exactly:
+///   - hwType, hwIndex, hwChannel, channelIndex, isOnBus: unsigned char (u8)
+///   - transceiverType, transceiverState, configError: unsigned short (u16)
+///   - channelMask: XLuint64 / XLaccess (u64)
+///   - Most other fields: unsigned int (u32)
+#[repr(C, packed)]
+pub struct XLchannelConfig {
+    pub name: [u8; 32],                     // char[XL_MAX_LENGTH+1]
+    pub hwType: u8,                          // unsigned char
+    pub hwIndex: u8,                         // unsigned char
+    pub hwChannel: u8,                       // unsigned char
+    pub transceiverType: u16,                // unsigned short
+    pub transceiverState: u16,               // unsigned short
+    pub configError: u16,                    // unsigned short
+    pub channelIndex: u8,                    // unsigned char
+    pub channelMask: XLaccess,               // XLuint64 (u64)
+    pub channelCapabilities: u32,            // unsigned int
+    pub channelBusCapabilities: u32,         // unsigned int
+    pub isOnBus: u8,                         // unsigned char
+    pub connectedBusType: u32,               // unsigned int
+    pub busParams: XLbusParams,              // XLbusParams (32 bytes)
+    pub _doNotUse: u32,                      // unsigned int
+    pub driverVersion: u32,                  // unsigned int
+    pub interfaceVersion: u32,               // unsigned int
+    pub raw_data: [u32; 10],                 // unsigned int[10]
+    pub serialNumber: u32,                   // unsigned int
+    pub articleNumber: u32,                  // unsigned int
+    pub transceiverName: [u8; 32],           // char[XL_MAX_LENGTH+1]
+    pub specialCabFlags: u32,                // unsigned int
+    pub dominantTimeout: u32,                // unsigned int
+    pub dominantRecessiveDelay: u8,           // unsigned char
+    pub recessiveDominantDelay: u8,           // unsigned char
+    pub connectionInfo: u8,                  // unsigned char
+    pub currentlyAvailableTimestamps: u8,     // unsigned char
+    pub minimalSupplyVoltage: u16,           // unsigned short
+    pub maximalSupplyVoltage: u16,           // unsigned short
+    pub maximalBaudrate: u32,                // unsigned int
+    pub fpgaCoreCapabilities: u8,            // unsigned char
+    pub specialDeviceStatus: u8,             // unsigned char
+    pub channelBusActiveCapabilities: u16,   // unsigned short
+    pub breakOffset: u16,                    // unsigned short
+    pub delimiterOffset: u16,                // unsigned short
+    pub reserved: [u32; 3],                  // unsigned int[3]
+}
+
+// Manual Clone for packed struct
+impl Clone for XLchannelConfig {
+    fn clone(&self) -> Self {
+        unsafe {
+            let mut new: Self = std::mem::zeroed();
+            std::ptr::copy_nonoverlapping(
+                self as *const Self as *const u8,
+                &mut new as *mut Self as *mut u8,
+                std::mem::size_of::<Self>(),
+            );
+            new
+        }
+    }
+}
+
+impl std::fmt::Debug for XLchannelConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hw_type = self.hwType;
+        let ch_idx = self.channelIndex;
+        write!(f, "XLchannelConfig {{ hwType: {}, channelIndex: {} }}", hw_type, ch_idx)
+    }
+}
+
+/// Driver configuration
+#[repr(C, packed)]
 pub struct XLdriverConfig {
     pub dllVersion: u32,
     pub channelCount: u32,
@@ -164,8 +200,31 @@ pub struct XLdriverConfig {
     pub channel: [XLchannelConfig; XL_CONFIG_MAX_CHANNELS],
 }
 
+// Manual Clone for packed struct
+impl Clone for XLdriverConfig {
+    fn clone(&self) -> Self {
+        unsafe {
+            let mut new: Self = std::mem::zeroed();
+            std::ptr::copy_nonoverlapping(
+                self as *const Self as *const u8,
+                &mut new as *mut Self as *mut u8,
+                std::mem::size_of::<Self>(),
+            );
+            new
+        }
+    }
+}
+
+impl std::fmt::Debug for XLdriverConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let count = self.channelCount;
+        write!(f, "XLdriverConfig {{ channelCount: {} }}", count)
+    }
+}
+
 /// CAN message structure (Classic CAN)
-#[repr(C)]
+/// s_xl_can_msg from vxlapi.h
+#[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct XLcanMsg {
     pub id: u32,
@@ -177,7 +236,8 @@ pub struct XLcanMsg {
 }
 
 /// XL event structure
-#[repr(C)]
+/// s_xl_event from vxlapi.h
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct XLevent {
     pub tag: u16,
@@ -204,7 +264,8 @@ impl std::fmt::Debug for XLeventData {
 }
 
 /// CAN FD message (RX)
-#[repr(C)]
+/// s_xl_can_msg_rx from vxlapi.h
+#[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct XLcanFdRxMsg {
     pub id: u32,
@@ -217,7 +278,8 @@ pub struct XLcanFdRxMsg {
 }
 
 /// CAN FD message (TX)
-#[repr(C)]
+/// s_xl_can_msg_tx from vxlapi.h
+#[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct XLcanFdTxMsg {
     pub canId: u32,
@@ -228,7 +290,8 @@ pub struct XLcanFdTxMsg {
 }
 
 /// CAN FD event
-#[repr(C)]
+/// s_xl_can_event from vxlapi.h
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct XLcanFdEvent {
     pub tag: u16,
@@ -256,7 +319,8 @@ impl std::fmt::Debug for XLcanFdEventData {
 }
 
 /// CAN FD configuration
-#[repr(C)]
+/// s_xl_can_fd_conf from vxlapi.h
+#[repr(C, packed)]
 #[derive(Debug, Clone, Copy)]
 pub struct XLcanFdConf {
     pub arbitrationBitRate: u32,
@@ -275,6 +339,7 @@ pub struct XLcanFdConf {
     pub reserved5: [u32; 4],
 }
 
+// Default implementations using zeroed memory
 impl Default for XLchannelConfig {
     fn default() -> Self {
         unsafe { std::mem::zeroed() }

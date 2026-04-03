@@ -71,17 +71,28 @@ impl CankoroApp {
         Self::setup_fonts(&cc.egui_ctx);
 
         let mut channel_config = ChannelConfigState::new();
+        let mut init_error: Option<String> = None;
 
         // Try to open Vector driver
         let driver = match VectorDriver::new() {
             Ok(drv) => {
-                if let Ok(channels) = drv.get_channels() {
-                    channel_config.set_channels(channels);
+                match drv.get_channels() {
+                    Ok(channels) => {
+                        if channels.is_empty() {
+                            init_error = Some(
+                                "No channels found. Add Virtual CAN channels in Vector Hardware Config.".to_string()
+                            );
+                        }
+                        channel_config.set_channels(channels);
+                    }
+                    Err(e) => {
+                        init_error = Some(format!("xlGetDriverConfig: {}", e));
+                    }
                 }
                 Some(drv)
             }
             Err(e) => {
-                log::warn!("Vector driver not available: {}", e);
+                init_error = Some(format!("{}: {}", t("err.driver_not_available"), e));
                 None
             }
         };
@@ -112,7 +123,7 @@ impl CankoroApp {
             logging: false,
             asc_writer: None,
             blf_writer: None,
-            error_message: None,
+            error_message: init_error,
             available_channels,
         }
     }

@@ -56,6 +56,17 @@ impl VectorDriver {
                 status
             ));
         }
+
+        // Log struct sizes for debugging
+        log::info!(
+            "XLchannelConfig size: {} bytes (expected 224)",
+            std::mem::size_of::<XLchannelConfig>()
+        );
+        log::info!(
+            "XLdriverConfig size: {} bytes (expected 14384)",
+            std::mem::size_of::<XLdriverConfig>()
+        );
+
         Ok(Self {
             api: Arc::new(api),
             is_open: true,
@@ -78,21 +89,26 @@ impl VectorDriver {
             ));
         }
 
+        let channel_count = config.channelCount;
+        log::info!("xlGetDriverConfig: {} channels found", channel_count);
+
         let mut channels = Vec::new();
-        for i in 0..config.channelCount as usize {
+        for i in 0..channel_count as usize {
             if i >= XL_CONFIG_MAX_CHANNELS {
                 break;
             }
             let ch = &config.channel[i];
-            // Filter for CAN-capable channels:
-            // Physical hardware: check channelBusCapabilities or connectedBusType
-            // Virtual channels: always include (hw_type == XL_HWTYPE_VIRTUAL)
-            let is_virtual = ch.hw_type == XL_HWTYPE_VIRTUAL;
-            let is_can_capable = ch.channelBusCapabilities & XL_BUS_TYPE_CAN != 0
-                || ch.connectedBusType == XL_BUS_TYPE_CAN;
-            if !is_virtual && !is_can_capable {
-                continue;
-            }
+
+            // Read packed fields into local variables (avoid unaligned access issues)
+            let hw_type = ch.hwType as u32;
+            let hw_index = ch.hwIndex as u32;
+            let hw_channel = ch.hwChannel as u32;
+            let channel_index = ch.channelIndex as u32;
+            let channel_mask = ch.channelMask;
+            let bus_capabilities = ch.channelBusCapabilities;
+            let connected_bus = ch.connectedBusType;
+            let is_on_bus = ch.isOnBus;
+            let serial = ch.serialNumber;
 
             let name = String::from_utf8_lossy(
                 &ch.name[..ch.name.iter().position(|&b| b == 0).unwrap_or(ch.name.len())],
@@ -108,18 +124,36 @@ impl VectorDriver {
             )
             .to_string();
 
+            log::info!(
+                "  Channel {}: name='{}' hwType={} hwIndex={} hwChannel={} mask=0x{:X} busCap=0x{:X} connBus=0x{:X} serial={}",
+                i, name, hw_type, hw_index, hw_channel, channel_mask, bus_capabilities, connected_bus, serial
+            );
+
+            // Filter for CAN-capable channels:
+            // Virtual channels: always include (hw_type == XL_HWTYPE_VIRTUAL)
+            // Physical hardware: check channelBusCapabilities or connectedBusType
+            let is_virtual = hw_type == XL_HWTYPE_VIRTUAL;
+            let is_can_capable = bus_capabilities & XL_BUS_TYPE_CAN != 0
+                || connected_bus == XL_BUS_TYPE_CAN;
+            if !is_virtual && !is_can_capable {
+                log::info!("    -> Skipped (not CAN capable and not Virtual)");
+                continue;
+            }
+
             channels.push(HwChannelInfo {
-                channel_index: ch.channelIndex,
-                channel_mask: ch.channelMask,
-                hw_type: ch.hw_type,
-                hw_index: ch.hw_index,
-                hw_channel: ch.hw_channel,
+                channel_index,
+                channel_mask,
+                hw_type,
+                hw_index,
+                hw_channel,
                 name,
-                serial_number: ch.serialNumber,
+                serial_number: serial,
                 transceiver_name,
-                is_on_bus: ch.isOnBus != 0,
+                is_on_bus: is_on_bus != 0,
             });
         }
+
+        log::info!("{} CAN-capable channels after filtering", channels.len());
         Ok(channels)
     }
 }
