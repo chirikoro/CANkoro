@@ -51,6 +51,64 @@ User-creatable transmission control panels with the following widgets:
 - Rust 1.75 or later
 - MSVC toolchain (for Windows builds)
 
+## Vector Hardware Setup
+
+### 1. Install Vector Driver Setup
+
+1. Download and install **Vector Driver Setup** from the Vector website or included media
+2. Follow the installer instructions to install the XL Driver Library
+3. Verify that `C:\Windows\System32\vxlapi64.dll` exists after installation
+
+### 2. Connect Hardware
+
+1. Connect VN1630 / VN1640 to a USB port on your PC
+2. Wait for Windows to recognize the device and load drivers automatically
+3. Confirm the device appears under "Vector Hardware" in Device Manager
+
+### 3. Vector Hardware Config (Recommended, Optional)
+
+> **Note**: CANkoro automatically detects all channels from the driver at startup, so pre-configuration in Hardware Config is not required. However, performing the following setup ensures more reliable channel assignment.
+
+1. Launch **Vector Hardware Config** from the Start menu
+2. Verify your connected hardware (VN1630/VN1640) appears in the device list
+3. (Optional) Register the application:
+   - In the **Application** section, click **Add**
+   - Enter `CANkoro` as the application name
+   - Assign the channels you want to use (Channel 1, Channel 2, etc.)
+   - Set **Bus Type** to `CAN`
+4. (Optional) Virtual CAN setup:
+   - In the **Virtual Devices** tab, you can add virtual CAN channels
+   - This allows testing the application without physical hardware
+
+### 4. Virtual CAN (Using Without Hardware)
+
+You can use Vector's Virtual CAN channels to test CANkoro without physical hardware:
+
+1. Launch **Vector Hardware Config**
+2. Go to the **Virtual Devices** tab
+3. Click **Add** to add virtual CAN channels (2 or more recommended)
+4. Launch CANkoro - channels marked `[Virtual]` will appear in the channel config
+5. Forwarding test: You can test forwarding mode between Virtual Channel 1 → Virtual Channel 2
+
+### Connection Flow (Summary)
+
+```
+Install Vector Driver Setup
+        ↓
+Connect VN1630/VN1640 via USB (or configure Virtual CAN)
+        ↓
+Launch CANkoro
+        ↓
+Channel Config tab: channels are auto-detected
+  → [VN1630] Channel 1 (S/N: xxxxx, Ch: 0)
+  → [VN1630] Channel 2 (S/N: xxxxx, Ch: 1)
+  → [Virtual] Virtual Channel 1 ...
+        ↓
+Check channels to use → set mode/bitrate
+        ↓
+Click "Connect" → CAN communication starts
+```
+
 ## Build
 
 ```bash

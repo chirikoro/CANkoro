@@ -51,6 +51,64 @@ Vector VN1630/VN1640インターフェース対応の高性能CAN/CAN-FD解析�
 - Rust 1.75以降
 - MSVCツールチェーン（Windowsビルド用）
 
+## Vectorハードウェアのセットアップ
+
+### 1. Vector Driver Setupのインストール
+
+1. Vectorの公式サイトまたは付属CDから **Vector Driver Setup** をダウンロード・インストール
+2. インストーラーの指示に従い、XL Driver Libraryをインストール
+3. インストール後、`C:\Windows\System32\vxlapi64.dll` が存在することを確認
+
+### 2. ハードウェアの接続
+
+1. VN1630 / VN1640 をPCのUSBポートに接続
+2. Windowsがデバイスを認識し、ドライバーが自動的にロードされるのを待つ
+3. デバイスマネージャーで「Vector Hardware」配下にデバイスが表示されることを確認
+
+### 3. Vector Hardware Config（推奨・任意）
+
+> **注意**: CANkoroは起動時にドライバーから全チャンネルを自動検出するため、Hardware Configでの事前設定は必須ではありません。ただし、以下の設定を行うことでチャンネル割り当てがより確実になります。
+
+1. スタートメニューから **Vector Hardware Config** を起動
+2. 接続されたハードウェア（VN1630/VN1640）が一覧に表示されることを確認
+3. （任意）アプリケーション登録:
+   - **Application** セクションで **Add** をクリック
+   - アプリケーション名に `CANkoro` と入力
+   - 使用するチャンネル（Channel 1, Channel 2 等）を割り当て
+   - **Bus Type** を `CAN` に設定
+4. （任意）Virtual CANの設定:
+   - Hardware Configの **Virtual Devices** タブで仮想チャンネルを追加可能
+   - 物理ハードウェアなしでアプリのテストが可能
+
+### 4. Virtual CAN（ハードウェアなしで使用する場合）
+
+物理ハードウェアがなくても、VectorドライバーのVirtual CANチャンネルを使用してCANkoroの動作確認が可能です：
+
+1. **Vector Hardware Config** を起動
+2. **Virtual Devices** タブを開く
+3. **Add** で仮想CANチャンネルを追加（2チャンネル以上推奨）
+4. CANkoroを起動すると、チャンネル設定画面に `[Virtual]` と表示されるチャンネルが検出される
+5. 転送テスト: Virtual Channel 1 → Virtual Channel 2 間で転送モードの動作確認が可能
+
+### 接続の流れ（まとめ）
+
+```
+Vector Driver Setup インストール
+        ↓
+VN1630/VN1640 を USB接続（またはVirtual CAN設定）
+        ↓
+CANkoro 起動
+        ↓
+チャンネル設定タブ: チャンネルが自動検出される
+  → [VN1630] Channel 1 (S/N: xxxxx, Ch: 0)
+  → [VN1630] Channel 2 (S/N: xxxxx, Ch: 1)
+  → [Virtual] Virtual Channel 1 ...
+        ↓
+使用するチャンネルにチェック → モード/ビットレート設定
+        ↓
+「接続」ボタンをクリック → CAN通信開始
+```
+
 ## ビルド方法
 
 ```bash
