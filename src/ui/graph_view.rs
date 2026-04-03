@@ -6,6 +6,7 @@ use crate::dbc::database::DbcDatabase;
 use crate::graph::cursor::CursorManager;
 use crate::graph::plot::{get_plot_color, SignalPlotData};
 use crate::graph::timeline::Timeline;
+use crate::i18n::t;
 
 /// Graph display mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,35 +145,35 @@ pub fn draw_graph_view(
 ) {
     // Toolbar
     ui.horizontal(|ui| {
-        ui.heading("Signal Graph");
+        ui.heading(t("graph.title"));
         ui.separator();
 
         // Mode selection
-        ui.radio_value(&mut state.mode, GraphMode::Realtime, "Realtime");
-        ui.radio_value(&mut state.mode, GraphMode::Playback, "Playback");
+        ui.radio_value(&mut state.mode, GraphMode::Realtime, t("graph.realtime"));
+        ui.radio_value(&mut state.mode, GraphMode::Playback, t("graph.playback"));
 
         ui.separator();
 
-        if ui.button("Select Signals").clicked() {
+        if ui.button(t("graph.select_signals")).clicked() {
             state.signal_select_open = true;
         }
 
-        if ui.button("Fit All").clicked() {
+        if ui.button(t("graph.fit_all")).clicked() {
             state.timeline.fit_all();
         }
 
-        ui.checkbox(&mut state.timeline.auto_scroll, "Auto-scroll");
+        ui.checkbox(&mut state.timeline.auto_scroll, t("graph.auto_scroll"));
 
         ui.separator();
 
         // Cursor controls
-        ui.checkbox(&mut state.cursors.cursor1.visible, "C1");
-        ui.checkbox(&mut state.cursors.diff_mode, "Diff");
+        ui.checkbox(&mut state.cursors.cursor1.visible, t("graph.c1"));
+        ui.checkbox(&mut state.cursors.diff_mode, t("graph.diff"));
         if state.cursors.diff_mode {
-            ui.checkbox(&mut state.cursors.cursor2.visible, "C2");
+            ui.checkbox(&mut state.cursors.cursor2.visible, t("graph.c2"));
         }
 
-        if ui.button("Clear Data").clicked() {
+        if ui.button(t("graph.clear_data")).clicked() {
             state.clear_data();
         }
     });
@@ -180,9 +181,9 @@ pub fn draw_graph_view(
     // Playback controls
     if state.mode == GraphMode::Playback {
         ui.horizontal(|ui| {
-            if ui.button("Load Log").clicked() {
+            if ui.button(t("graph.load_log")).clicked() {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("Log files", &["asc", "blf"])
+                    .add_filter(t("file.log_files"), &["asc", "blf"])
                     .pick_file()
                 {
                     match crate::log::reader::load_log_file(&path) {
@@ -200,23 +201,24 @@ pub fn draw_graph_view(
                 }
             }
 
-            let play_text = if state.playback.playing { "Pause" } else { "Play" };
+            let play_text = if state.playback.playing { t("graph.pause") } else { t("graph.play") };
             if ui.button(play_text).clicked() {
                 state.playback.playing = !state.playback.playing;
             }
 
-            if ui.button("Stop").clicked() {
+            if ui.button(t("graph.stop")).clicked() {
                 state.playback.playing = false;
                 state.playback.current_index = 0;
                 state.playback.current_time = 0.0;
                 state.clear_data();
             }
 
-            ui.label("Speed:");
+            ui.label(t("graph.speed"));
             ui.add(egui::Slider::new(&mut state.playback.speed, 0.1..=10.0).suffix("x"));
 
             ui.label(format!(
-                "Frame: {}/{}",
+                "{}: {}/{}",
+                t("graph.frame"),
                 state.playback.current_index,
                 state.playback.loaded_frames.len()
             ));
@@ -313,7 +315,7 @@ pub fn draw_graph_view(
                         .allow_scroll(false)
                         .allow_zoom(egui::Vec2b::new(true, false))
                         .allow_drag(egui::Vec2b::new(true, false))
-                        .x_axis_label("Time [s]")
+                        .x_axis_label(t("graph.time_axis"))
                         .y_axis_label(format!("{} [{}]", signal.name, signal.unit))
                         .include_y(signal.y_min)
                         .include_y(signal.y_max)
@@ -362,7 +364,7 @@ pub fn draw_graph_view(
 
 fn draw_cursor_info(ui: &mut Ui, state: &GraphViewState) {
     ui.group(|ui| {
-        ui.heading("Cursor Analysis");
+        ui.heading(t("graph.cursor_analysis"));
         ui.horizontal(|ui| {
             if state.cursors.cursor1.visible {
                 ui.label(format!("C1: {:.6} s", state.cursors.cursor1.time));
@@ -380,15 +382,15 @@ fn draw_cursor_info(ui: &mut Ui, state: &GraphViewState) {
         egui::Grid::new("cursor_values_grid")
             .striped(true)
             .show(ui, |ui| {
-                ui.strong("Signal");
+                ui.strong(t("graph.signal"));
                 if state.cursors.cursor1.visible {
-                    ui.strong("C1 Value");
+                    ui.strong(t("graph.c1_value"));
                 }
                 if state.cursors.diff_mode && state.cursors.cursor2.visible {
-                    ui.strong("C2 Value");
-                    ui.strong("Delta");
+                    ui.strong(t("graph.c2_value"));
+                    ui.strong(t("graph.delta"));
                 }
-                ui.strong("Unit");
+                ui.strong(t("graph.unit"));
                 ui.end_row();
 
                 for signal in &state.signals {
@@ -441,7 +443,7 @@ fn draw_signal_selector(
     state: &mut GraphViewState,
     dbc: &Option<DbcDatabase>,
 ) {
-    egui::Window::new("Signal Selection")
+    egui::Window::new(t("graph.signal_selection"))
         .open(&mut state.signal_select_open)
         .resizable(true)
         .default_size([400.0, 500.0])
@@ -492,7 +494,7 @@ fn draw_signal_selector(
                     }
                 });
             } else {
-                ui.label("No DBC file loaded. Please load a DBC file first.");
+                ui.label(t("graph.no_dbc"));
             }
         });
 }

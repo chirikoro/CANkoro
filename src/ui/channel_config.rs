@@ -1,6 +1,7 @@
 /// Channel configuration UI
 use egui::{self, Ui};
 
+use crate::i18n::t;
 use crate::vector::channel::CanMode;
 use crate::vector::driver::HwChannelInfo;
 
@@ -51,20 +52,20 @@ const FD_DATA_BITRATES: &[u32] = &[500000, 1000000, 2000000, 4000000, 5000000, 8
 pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool {
     let mut config_changed = false;
 
-    ui.heading("Channel Configuration");
+    ui.heading(t("ch.title"));
     ui.separator();
 
     // DBC file selection
     ui.horizontal(|ui| {
-        ui.label("DBC File:");
+        ui.label(t("ch.dbc_file"));
         if let Some(ref path) = state.selected_dbc_path {
             ui.label(path);
         } else {
-            ui.label("(None)");
+            ui.label(t("ch.none"));
         }
-        if ui.button("Browse...").clicked() {
+        if ui.button(t("ch.browse")).clicked() {
             if let Some(path) = rfd::FileDialog::new()
-                .add_filter("DBC files", &["dbc"])
+                .add_filter(t("file.dbc"), &["dbc"])
                 .pick_file()
             {
                 state.selected_dbc_path = Some(path.to_string_lossy().to_string());
@@ -76,7 +77,7 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
     ui.separator();
 
     if state.channels.is_empty() {
-        ui.label("No CAN channels detected. Please check Vector hardware connection.");
+        ui.label(t("ch.no_channels"));
         return false;
     }
 
@@ -99,15 +100,15 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
                 if ch.enabled {
                     ui.indent("ch_config", |ui| {
                         ui.horizontal(|ui| {
-                            ui.label("Mode:");
+                            ui.label(t("ch.mode"));
                             if ui
-                                .radio_value(&mut ch.mode, CanMode::Can, "CAN")
+                                .radio_value(&mut ch.mode, CanMode::Can, t("ch.can"))
                                 .changed()
                             {
                                 config_changed = true;
                             }
                             if ui
-                                .radio_value(&mut ch.mode, CanMode::CanFd, "CAN FD")
+                                .radio_value(&mut ch.mode, CanMode::CanFd, t("ch.can_fd"))
                                 .changed()
                             {
                                 config_changed = true;
@@ -115,7 +116,7 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
                         });
 
                         ui.horizontal(|ui| {
-                            ui.label("Bitrate:");
+                            ui.label(t("ch.bitrate"));
                             egui::ComboBox::from_id_salt(format!("br_{}", ch.hw_info.channel_index))
                                 .selected_text(format_bitrate(ch.bitrate))
                                 .show_ui(ui, |ui| {
@@ -136,7 +137,7 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
 
                         if ch.mode == CanMode::CanFd {
                             ui.horizontal(|ui| {
-                                ui.label("Data Bitrate:");
+                                ui.label(t("ch.data_bitrate"));
                                 egui::ComboBox::from_id_salt(format!(
                                     "dbr_{}",
                                     ch.hw_info.channel_index
@@ -160,7 +161,7 @@ pub fn draw_channel_config(ui: &mut Ui, state: &mut ChannelConfigState) -> bool 
                         }
 
                         ui.horizontal(|ui| {
-                            ui.label("Transceiver:");
+                            ui.label(t("ch.transceiver"));
                             ui.label(&ch.hw_info.transceiver_name);
                         });
                     });

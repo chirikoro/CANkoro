@@ -3,6 +3,7 @@ use egui::{self, Ui};
 
 use crate::config::tx_settings::{ForwardSetting, TrapezoidalSetting, TxSettings};
 use crate::dbc::database::DbcDatabase;
+use crate::i18n::t;
 
 /// Draw the transmission configuration panel
 pub fn draw_tx_config(
@@ -13,14 +14,14 @@ pub fn draw_tx_config(
 ) -> Vec<TxAction> {
     let mut actions = Vec::new();
 
-    ui.heading("Transmission Configuration");
+    ui.heading(t("tx.title"));
     ui.separator();
 
     // Save / Load buttons
     ui.horizontal(|ui| {
-        if ui.button("Save Settings").clicked() {
+        if ui.button(t("tx.save")).clicked() {
             if let Some(path) = rfd::FileDialog::new()
-                .add_filter("TX Settings", &["json"])
+                .add_filter(t("file.tx_settings"), &["json"])
                 .save_file()
             {
                 if let Err(e) = settings.save(&path) {
@@ -28,9 +29,9 @@ pub fn draw_tx_config(
                 }
             }
         }
-        if ui.button("Load Settings").clicked() {
+        if ui.button(t("tx.load")).clicked() {
             if let Some(path) = rfd::FileDialog::new()
-                .add_filter("TX Settings", &["json"])
+                .add_filter(t("file.tx_settings"), &["json"])
                 .pick_file()
             {
                 match TxSettings::load(&path) {
@@ -44,8 +45,8 @@ pub fn draw_tx_config(
     ui.separator();
 
     // Forward configurations
-    ui.collapsing("Forward Configurations", |ui| {
-        if ui.button("Add Forward").clicked() {
+    ui.collapsing(t("tx.forward_config"), |ui| {
+        if ui.button(t("tx.add_forward")).clicked() {
             settings.forwards.push(ForwardSetting {
                 name: format!("Forward {}", settings.forwards.len() + 1),
                 enabled: false,
@@ -61,7 +62,7 @@ pub fn draw_tx_config(
             ui.group(|ui| {
                 ui.horizontal(|ui| {
                     ui.text_edit_singleline(&mut fwd.name);
-                    if ui.checkbox(&mut fwd.enabled, "Enable").changed() {
+                    if ui.checkbox(&mut fwd.enabled, t("tx.enable")).changed() {
                         if fwd.enabled {
                             actions.push(TxAction::StartForward(i));
                         } else {
@@ -74,7 +75,7 @@ pub fn draw_tx_config(
                 });
 
                 ui.horizontal(|ui| {
-                    ui.label("Rx Channel:");
+                    ui.label(t("tx.rx_channel"));
                     egui::ComboBox::from_id_salt(format!("fwd_rx_{}", i))
                         .selected_text(
                             available_channels
@@ -92,7 +93,7 @@ pub fn draw_tx_config(
                             }
                         });
 
-                    ui.label("Tx Channel:");
+                    ui.label(t("tx.tx_channel"));
                     egui::ComboBox::from_id_salt(format!("fwd_tx_{}", i))
                         .selected_text(
                             available_channels
@@ -128,8 +129,8 @@ pub fn draw_tx_config(
     ui.separator();
 
     // Trapezoidal wave configurations
-    ui.collapsing("Trapezoidal Wave", |ui| {
-        if ui.button("Add Trapezoidal").clicked() {
+    ui.collapsing(t("tx.trapezoidal"), |ui| {
+        if ui.button(t("tx.add_trapezoidal")).clicked() {
             settings.trapezoidals.push(TrapezoidalSetting {
                 name: format!("Trapezoid {}", settings.trapezoidals.len() + 1),
                 enabled: false,
@@ -153,7 +154,7 @@ pub fn draw_tx_config(
             ui.group(|ui| {
                 ui.horizontal(|ui| {
                     ui.text_edit_singleline(&mut trap.name);
-                    if ui.checkbox(&mut trap.enabled, "Enable").changed() {
+                    if ui.checkbox(&mut trap.enabled, t("tx.enable")).changed() {
                         if trap.enabled {
                             actions.push(TxAction::StartTrapezoidal(i));
                         } else {
@@ -166,7 +167,7 @@ pub fn draw_tx_config(
                 });
 
                 ui.horizontal(|ui| {
-                    ui.label("Tx Channel:");
+                    ui.label(t("tx.tx_channel"));
                     egui::ComboBox::from_id_salt(format!("trap_tx_{}", i))
                         .selected_text(
                             available_channels
@@ -188,7 +189,7 @@ pub fn draw_tx_config(
                 // Message & signal selection from DBC
                 if let Some(ref dbc_db) = dbc {
                     ui.horizontal(|ui| {
-                        ui.label("Message ID (hex):");
+                        ui.label(t("tx.message_id"));
                         let mut id_str = format!("{:03X}", trap.message_id);
                         if ui.text_edit_singleline(&mut id_str).changed() {
                             if let Ok(id) = u32::from_str_radix(&id_str, 16) {
@@ -199,7 +200,7 @@ pub fn draw_tx_config(
 
                     if let Some(msg) = dbc_db.get_message(trap.message_id) {
                         ui.horizontal(|ui| {
-                            ui.label("Signal:");
+                            ui.label(t("tx.signal"));
                             egui::ComboBox::from_id_salt(format!("trap_sig_{}", i))
                                 .selected_text(&trap.signal_name)
                                 .show_ui(ui, |ui| {
@@ -224,7 +225,7 @@ pub fn draw_tx_config(
 
                         if let Some(sig) = msg.get_signal(&trap.signal_name) {
                             ui.horizontal(|ui| {
-                                ui.label("Initial value:");
+                                ui.label(t("tx.initial_value"));
                                 ui.add(
                                     egui::DragValue::new(&mut trap.initial_value)
                                         .range(sig.min..=sig.max)
@@ -233,7 +234,7 @@ pub fn draw_tx_config(
                                 ui.label(&sig.unit);
                             });
                             ui.horizontal(|ui| {
-                                ui.label("Max value:");
+                                ui.label(t("tx.max_value"));
                                 ui.add(
                                     egui::DragValue::new(&mut trap.max_value)
                                         .range(sig.min..=sig.max)
@@ -245,7 +246,7 @@ pub fn draw_tx_config(
                     }
                 } else {
                     ui.horizontal(|ui| {
-                        ui.label("Message ID (hex):");
+                        ui.label(t("tx.message_id"));
                         let mut id_str = format!("{:03X}", trap.message_id);
                         if ui.text_edit_singleline(&mut id_str).changed() {
                             if let Ok(id) = u32::from_str_radix(&id_str, 16) {
@@ -254,25 +255,25 @@ pub fn draw_tx_config(
                         }
                     });
                     ui.horizontal(|ui| {
-                        ui.label("Signal name:");
+                        ui.label(t("tx.signal_name"));
                         ui.text_edit_singleline(&mut trap.signal_name);
                     });
                 }
 
                 ui.horizontal(|ui| {
-                    ui.label("Rate (value/s):");
+                    ui.label(t("tx.rate"));
                     ui.add(egui::DragValue::new(&mut trap.rate).speed(0.1));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Hold time (ms):");
+                    ui.label(t("tx.hold_time"));
                     ui.add(egui::DragValue::new(&mut trap.hold_time_ms).speed(10.0));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Cycle time (ms):");
+                    ui.label(t("tx.cycle_time"));
                     ui.add(egui::DragValue::new(&mut trap.cycle_time_ms).speed(1.0));
                 });
-                ui.checkbox(&mut trap.repeat, "Repeat");
-                ui.checkbox(&mut trap.is_fd, "CAN FD");
+                ui.checkbox(&mut trap.repeat, t("tx.repeat"));
+                ui.checkbox(&mut trap.is_fd, t("ch.can_fd"));
             });
         }
         if let Some(idx) = remove_idx {
@@ -293,9 +294,9 @@ fn draw_signal_modifications(
     fwd_index: usize,
 ) {
     ui.collapsing(
-        format!("Signal Modifications ({})", modifications.len()),
+        format!("{} ({})", t("tx.signal_modifications"), modifications.len()),
         |ui| {
-            if ui.button("Add Modification").clicked() {
+            if ui.button(t("tx.add_modification")).clicked() {
                 modifications.push(crate::can::transmitter::SignalModification {
                     message_id: 0,
                     signal_name: String::new(),
@@ -306,7 +307,7 @@ fn draw_signal_modifications(
             let mut remove_idx = None;
             for (j, modification) in modifications.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
-                    ui.label("Msg:");
+                    ui.label(t("tx.msg"));
                     let mut id_str = format!("{:03X}", modification.message_id);
                     if ui
                         .add(egui::TextEdit::singleline(&mut id_str).desired_width(60.0))
@@ -317,7 +318,7 @@ fn draw_signal_modifications(
                         }
                     }
 
-                    ui.label("Sig:");
+                    ui.label(t("tx.sig"));
                     if let Some(msg) = dbc.get_message(modification.message_id) {
                         egui::ComboBox::from_id_salt(format!("mod_sig_{}_{}", fwd_index, j))
                             .selected_text(&modification.signal_name)
@@ -332,7 +333,7 @@ fn draw_signal_modifications(
                             });
 
                         if let Some(sig) = msg.get_signal(&modification.signal_name) {
-                            ui.label("Val:");
+                            ui.label(t("tx.val"));
                             ui.add(
                                 egui::DragValue::new(&mut modification.value)
                                     .range(sig.min..=sig.max)

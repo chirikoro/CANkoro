@@ -1,6 +1,8 @@
 /// Main view layout with tab-based navigation
 use egui::{self, Ui};
 
+use crate::i18n::t;
+
 /// Available tabs in the main view
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainTab {
@@ -15,12 +17,12 @@ pub enum MainTab {
 impl MainTab {
     pub fn label(&self) -> &str {
         match self {
-            MainTab::ChannelConfig => "Channel Config",
-            MainTab::LogView => "CAN Log",
-            MainTab::GraphView => "Graph",
-            MainTab::TxConfig => "TX Config",
-            MainTab::TxPanels => "TX Panels",
-            MainTab::PanelEditor => "Panel Editor",
+            MainTab::ChannelConfig => t("tab.channel_config"),
+            MainTab::LogView => t("tab.can_log"),
+            MainTab::GraphView => t("tab.graph"),
+            MainTab::TxConfig => t("tab.tx_config"),
+            MainTab::TxPanels => t("tab.tx_panels"),
+            MainTab::PanelEditor => t("tab.panel_editor"),
         }
     }
 }
@@ -62,14 +64,14 @@ pub fn draw_status_bar(
         };
         ui.colored_label(
             status_color,
-            if connected { "Connected" } else { "Disconnected" },
+            if connected { t("app.connected") } else { t("app.disconnected") },
         );
         ui.separator();
         ui.label(format!("Rx: {}", rx_count));
         ui.label(format!("Tx: {}", tx_count));
         ui.separator();
         if logging {
-            ui.colored_label(egui::Color32::from_rgb(255, 100, 100), "REC");
+            ui.colored_label(egui::Color32::from_rgb(255, 100, 100), t("app.rec"));
         }
     });
 }

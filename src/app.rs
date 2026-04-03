@@ -11,6 +11,7 @@ use crate::can::receiver::CanReceiver;
 use crate::can::transmitter::{CanTransmitter, ForwardConfig, TrapezoidalConfig, TxCommand};
 use crate::config::tx_settings::TxSettings;
 use crate::dbc::database::DbcDatabase;
+use crate::i18n::{self, Locale, t};
 use crate::log::asc::AscWriter;
 use crate::log::blf::BlfWriter;
 use crate::ui::channel_config::ChannelConfigState;
@@ -117,7 +118,7 @@ impl CankoroApp {
         let driver = match &self.driver {
             Some(d) => d,
             None => {
-                self.error_message = Some("Vector driver not available".to_string());
+                self.error_message = Some(t("err.driver_not_available").to_string());
                 return;
             }
         };
@@ -136,7 +137,7 @@ impl CankoroApp {
         }
 
         if configs.is_empty() {
-            self.error_message = Some("No channels enabled".to_string());
+            self.error_message = Some(t("err.no_channels_enabled").to_string());
             return;
         }
 
@@ -144,7 +145,7 @@ impl CankoroApp {
         match CanPort::open(driver.api().clone(), "CANkoro", &configs) {
             Ok(mut port) => {
                 if let Err(e) = port.activate() {
-                    self.error_message = Some(format!("Activate failed: {}", e));
+                    self.error_message = Some(format!("{}: {}", t("err.activate_failed"), e));
                     return;
                 }
 
@@ -177,7 +178,7 @@ impl CankoroApp {
                 log::info!("Connected to CAN interface");
             }
             Err(e) => {
-                self.error_message = Some(format!("Open port failed: {}", e));
+                self.error_message = Some(format!("{}: {}", t("err.open_port_failed"), e));
             }
         }
     }
@@ -199,8 +200,8 @@ impl CankoroApp {
 
     fn start_logging(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("ASC files", &["asc"])
-            .add_filter("BLF files", &["blf"])
+            .add_filter(t("file.asc"), &["asc"])
+            .add_filter(t("file.blf"), &["blf"])
             .save_file()
         {
             let ext = path
@@ -215,14 +216,14 @@ impl CankoroApp {
                         self.blf_writer = Some(writer);
                         self.logging = true;
                     }
-                    Err(e) => self.error_message = Some(format!("BLF open error: {}", e)),
+                    Err(e) => self.error_message = Some(format!("{}: {}", t("err.blf_open_error"), e)),
                 },
                 _ => match AscWriter::new(&path) {
                     Ok(writer) => {
                         self.asc_writer = Some(writer);
                         self.logging = true;
                     }
-                    Err(e) => self.error_message = Some(format!("ASC open error: {}", e)),
+                    Err(e) => self.error_message = Some(format!("{}: {}", t("err.asc_open_error"), e)),
                 },
             }
         }
@@ -248,7 +249,7 @@ impl CankoroApp {
                 *self.dbc.write() = Some(db);
             }
             Err(e) => {
-                self.error_message = Some(format!("DBC load error: {}", e));
+                self.error_message = Some(format!("{}: {}", t("err.dbc_load_error"), e));
             }
         }
     }
@@ -433,15 +434,15 @@ impl eframe::App for CankoroApp {
         // Top menu bar
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.heading("CANkoro");
+                ui.heading(t("app.name"));
                 ui.separator();
 
                 if self.connected {
-                    if ui.button("Disconnect").clicked() {
+                    if ui.button(t("app.disconnect")).clicked() {
                         self.disconnect();
                     }
                 } else {
-                    if ui.button("Connect").clicked() {
+                    if ui.button(t("app.connect")).clicked() {
                         // Load DBC if specified
                         if let Some(ref path) = self.channel_config.selected_dbc_path.clone() {
                             self.load_dbc(path);
@@ -454,13 +455,24 @@ impl eframe::App for CankoroApp {
 
                 if self.connected {
                     if self.logging {
-                        if ui.button("Stop Logging").clicked() {
+                        if ui.button(t("app.stop_logging")).clicked() {
                             self.stop_logging();
                         }
                     } else {
-                        if ui.button("Start Logging").clicked() {
+                        if ui.button(t("app.start_logging")).clicked() {
                             self.start_logging();
                         }
+                    }
+                }
+
+                ui.separator();
+
+                // Language selector
+                ui.label(t("app.language"));
+                let current_locale = i18n::get_locale();
+                for locale in Locale::all() {
+                    if ui.selectable_label(current_locale == *locale, locale.label()).clicked() {
+                        i18n::set_locale(*locale);
                     }
                 }
 

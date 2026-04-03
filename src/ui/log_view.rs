@@ -2,6 +2,7 @@
 use egui::{self, Ui};
 
 use crate::can::frame::{CanFrame, Direction};
+use crate::i18n::t;
 
 /// State for the log view
 pub struct LogViewState {
@@ -62,20 +63,20 @@ impl Default for LogViewState {
 
 pub fn draw_log_view(ui: &mut Ui, state: &mut LogViewState) {
     ui.horizontal(|ui| {
-        ui.heading("CAN Log");
+        ui.heading(t("log.title"));
         ui.separator();
-        ui.label(format!("Total: {}", state.total_count));
-        ui.label(format!("Displayed: {}", state.frames.len()));
+        ui.label(format!("{}: {}", t("log.total"), state.total_count));
+        ui.label(format!("{}: {}", t("log.displayed"), state.frames.len()));
         ui.separator();
-        ui.checkbox(&mut state.auto_scroll, "Auto-scroll");
-        if ui.button(if state.paused { "Resume" } else { "Pause" }).clicked() {
+        ui.checkbox(&mut state.auto_scroll, t("log.auto_scroll"));
+        if ui.button(if state.paused { t("log.resume") } else { t("log.pause") }).clicked() {
             state.paused = !state.paused;
         }
-        if ui.button("Clear").clicked() {
+        if ui.button(t("log.clear")).clicked() {
             state.clear();
         }
         ui.separator();
-        ui.label("ID Filter:");
+        ui.label(t("log.id_filter"));
         ui.text_edit_singleline(&mut state.id_filter);
     });
 
@@ -94,7 +95,10 @@ pub fn draw_log_view(ui: &mut Ui, state: &mut LogViewState) {
     ui.horizontal(|ui| {
         ui.set_min_width(ui.available_width());
         let widths = [90.0, 30.0, 25.0, 80.0, 30.0, 25.0, 30.0, 300.0];
-        let headers = ["Timestamp", "Ch", "Dir", "ID", "DLC", "FD", "BRS", "Data"];
+        let headers = [
+            t("log.timestamp"), t("log.channel"), t("log.direction"), t("log.id"),
+            t("log.dlc"), t("log.fd"), t("log.brs"), t("log.data"),
+        ];
         for (w, h) in widths.iter().zip(headers.iter()) {
             ui.allocate_ui(egui::vec2(*w, row_height), |ui| {
                 ui.strong(*h);
@@ -140,8 +144,8 @@ pub fn draw_log_view(ui: &mut Ui, state: &mut LogViewState) {
                 });
                 ui.allocate_ui(egui::vec2(25.0, row_height), |ui| {
                     let dir_str = match frame.direction {
-                        Direction::Rx => "Rx",
-                        Direction::Tx => "Tx",
+                        Direction::Rx => t("log.rx"),
+                        Direction::Tx => t("log.tx"),
                     };
                     ui.colored_label(dir_color, dir_str);
                 });
