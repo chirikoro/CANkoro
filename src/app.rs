@@ -66,7 +66,10 @@ pub struct CankoroApp {
 }
 
 impl CankoroApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Configure Japanese font support
+        Self::setup_fonts(&cc.egui_ctx);
+
         let mut channel_config = ChannelConfigState::new();
 
         // Try to open Vector driver
@@ -112,6 +115,49 @@ impl CankoroApp {
             error_message: None,
             available_channels,
         }
+    }
+
+    fn setup_fonts(ctx: &egui::Context) {
+        let mut fonts = egui::FontDefinitions::default();
+
+        // Try to load Japanese system fonts (Windows)
+        let font_paths = [
+            "C:\\Windows\\Fonts\\YuGothR.ttc",   // Yu Gothic Regular
+            "C:\\Windows\\Fonts\\YuGothM.ttc",   // Yu Gothic Medium
+            "C:\\Windows\\Fonts\\yugothib.ttc",   // Yu Gothic UI Bold
+            "C:\\Windows\\Fonts\\meiryo.ttc",     // Meiryo
+            "C:\\Windows\\Fonts\\msgothic.ttc",   // MS Gothic
+            "C:\\Windows\\Fonts\\BIZ-UDGothicR.ttc", // BIZ UD Gothic
+        ];
+
+        let mut loaded = false;
+        for path in &font_paths {
+            if let Ok(font_data) = std::fs::read(path) {
+                fonts.font_data.insert(
+                    "jp_font".to_owned(),
+                    egui::FontData::from_owned(font_data).into(),
+                );
+
+                // Insert Japanese font as highest priority fallback for proportional
+                if let Some(family) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+                    family.insert(0, "jp_font".to_owned());
+                }
+                // Also for monospace
+                if let Some(family) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+                    family.push("jp_font".to_owned());
+                }
+
+                loaded = true;
+                log::info!("Loaded Japanese font: {}", path);
+                break;
+            }
+        }
+
+        if !loaded {
+            log::warn!("No Japanese system font found. CJK characters may not display correctly.");
+        }
+
+        ctx.set_fonts(fonts);
     }
 
     fn connect(&mut self) {
