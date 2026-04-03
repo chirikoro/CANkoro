@@ -86,13 +86,44 @@ impl CanPort {
             )
         };
 
-        if status != XL_SUCCESS {
+        // If CAN FD mode failed, fallback to classic CAN interface version
+        // (Virtual CAN channels may not support XL_INTERFACE_VERSION_V4)
+        let mode = if status != XL_SUCCESS && interface_version == 4 {
+            log::warn!(
+                "xlOpenPort with CAN FD interface failed ({}), retrying with classic CAN interface",
+                xl_status_to_string(status)
+            );
+            port_handle = -1;
+            permission_mask = access_mask;
+            let fallback_status = unsafe {
+                (api.xl_open_port)(
+                    &mut port_handle,
+                    app_name_c.as_ptr(),
+                    access_mask,
+                    &mut permission_mask,
+                    8192,
+                    3u32, // XL_INTERFACE_VERSION (classic CAN)
+                    XL_BUS_TYPE_CAN,
+                )
+            };
+            if fallback_status != XL_SUCCESS {
+                return Err(format!(
+                    "xlOpenPort failed: {} ({})",
+                    xl_status_to_string(fallback_status),
+                    fallback_status
+                ));
+            }
+            log::info!("Opened port with classic CAN interface (CAN FD not available on this channel)");
+            CanMode::Can
+        } else if status != XL_SUCCESS {
             return Err(format!(
                 "xlOpenPort failed: {} ({})",
                 xl_status_to_string(status),
                 status
             ));
-        }
+        } else {
+            mode
+        };
 
         // Configure bitrate for each channel
         for cfg in configs {

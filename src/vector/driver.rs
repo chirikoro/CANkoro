@@ -84,10 +84,13 @@ impl VectorDriver {
                 break;
             }
             let ch = &config.channel[i];
-            // Filter for CAN-capable channels
-            if ch.channelBusCapabilities & XL_BUS_TYPE_CAN == 0
-                && ch.connectedBusType != XL_BUS_TYPE_CAN
-            {
+            // Filter for CAN-capable channels:
+            // Physical hardware: check channelBusCapabilities or connectedBusType
+            // Virtual channels: always include (hw_type == XL_HWTYPE_VIRTUAL)
+            let is_virtual = ch.hw_type == XL_HWTYPE_VIRTUAL;
+            let is_can_capable = ch.channelBusCapabilities & XL_BUS_TYPE_CAN != 0
+                || ch.connectedBusType == XL_BUS_TYPE_CAN;
+            if !is_virtual && !is_can_capable {
                 continue;
             }
 
